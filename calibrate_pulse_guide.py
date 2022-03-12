@@ -15,9 +15,18 @@ from collections import defaultdict
 import numpy as np
 import win32com.client
 from donuts import Donuts
+from donuts.image import Image
+from scipy.ndimage import median_filter
 
 # pylint: disable=invalid-name
 # pylint: disable=redefined-outer-name
+
+class CustomImageClass(Image):
+    def preconstruct_hook(self):
+        clean = median_filter(self.raw_image, size=4, mode='mirror')
+        band_corr = np.median(clean, axis=1).reshape(-1, 1)
+        band_clean = clean - band_corr
+        self.raw_image = band_clean
 
 def argParse():
     """
@@ -29,7 +38,7 @@ def argParse():
                    choices=['nites', 'io',
                             'callisto', 'europa',
                             'ganymede', 'saintex',
-                            'artemis', 'rcos20'])
+                            'artemis', 'rcos20', 'spirit'])
     p.add_argument('--pulse_time',
                    help='time (ms) to pulse the mount during calibration',
                    default=5000)
@@ -69,8 +78,8 @@ def connectCamera():
         CAMERA_READY = False
     return myCamera, CAMERA_READY
 
-def takeImageWithMaxIm(camera_object, image_path, filter_id=1,
-                       exptime=10, t_settle=1):
+def takeImageWithMaxIm(camera_object, image_path, filter_id=2,
+                       exptime=10, t_settle=10):
     """
     Take an image with MaxImDL
     """
@@ -160,6 +169,11 @@ if __name__ == "__main__":
             BASE_DIR,
             IMAGE_EXTENSION
             )
+    elif args.instrument == 'spirit':
+        from speculoos_spirit import (
+            BASE_DIR,
+            IMAGE_EXTENSION
+            )
     elif args.instrument == 'nites':
         from nites import (
             BASE_DIR,
@@ -185,7 +199,7 @@ if __name__ == "__main__":
     ref_image, image_id = newFilename(data_dir, 'R', 0, image_id, IMAGE_EXTENSION)
     takeImageWithMaxIm(myCamera, ref_image)
     # set up donuts with this reference point. Assume default params for now
-    donuts_ref = Donuts(ref_image)
+    donuts_ref = Donuts(ref_image, normalise=False, subtract_bkg=True, downweight_edges=False, image_class=CustomImageClass))
     # loop over 10 cycles of the U, D, L, R nudging to determine
     # the scale and orientation of the camera
     for i in range(10):
@@ -201,9 +215,10 @@ if __name__ == "__main__":
             takeImageWithMaxIm(myCamera, check)
             shift = donuts_ref.measure_shift(check)
             direction, magnitude = determineShiftDirectionMagnitude(shift)
+            print(direction, magnitude)
             DIRECTION_STORE[j].append(direction)
             SCALE_STORE[j].append(magnitude)
-            donuts_ref = Donuts(check)
+            donuts_ref = Donuts(check, normalise=False, subtract_bkg=True, downweight_edges=False, image_class=CustomImageClass))
     # now do some analysis on the run from above
     # check that the directions are the same every time for each orientation
     for direc in DIRECTION_STORE:

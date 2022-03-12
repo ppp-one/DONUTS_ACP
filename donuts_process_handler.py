@@ -50,7 +50,7 @@ def argParse():
                    help='select an instrument',
                    choices=['io', 'callisto', 'europa',
                             'ganymede', 'saintex',
-                            'artemis', 'nites', 'rcos20'])
+                            'artemis', 'nites', 'rcos20', 'spirit'])
     return p.parse_args()
 
 class Autoguider(object):
@@ -155,9 +155,10 @@ class Autoguider(object):
                              db=self.db_database,
                              user=self.db_user,
                              password=self.db_password,
-                             cursorclass=pymysql.cursors.DictCursor) as cur:
-            cur.execute(qry)
-            result = cur.fetchone()
+                             cursorclass=pymysql.cursors.DictCursor) as conn:
+            with conn.cursor() as cur:
+                cur.execute(qry)
+                result = cur.fetchone()
         if result:
             print('[{}]: {}:'.format(result['updated'],
                                      result['comparison']))
@@ -180,9 +181,10 @@ class Autoguider(object):
                              db=self.db_database,
                              user=self.db_user,
                              password=self.db_password,
-                             cursorclass=pymysql.cursors.DictCursor) as cur:
-            cur.execute(qry2)
-            results = cur.fetchall()
+                             cursorclass=pymysql.cursors.DictCursor) as conn:
+            with conn.cursor() as cur:
+                cur.execute(qry2)
+                results = cur.fetchall()
         for row in results:
             print("[{}]: {}".format(row['updated'],
                                     row['message']))
@@ -303,6 +305,8 @@ if __name__ == "__main__":
         from speculoos_artemis import *
     elif args.instrument == 'rcos20':
         from rcos20 import *
+    elif args.instrument == 'spirit':
+        from speculoos_spirit import *
     else:
         sys.exit(1)
 

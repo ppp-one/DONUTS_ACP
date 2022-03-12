@@ -50,6 +50,7 @@ Follow the steps below to install the prerequisite software required to run Donu
       1. conda install pymysql
       1. pip install Pyro4
       1. pip install donuts
+      1. pywin32 (need to do post install script to enable win32com.client - document properly)
 
 ## Setting up MySQL database and autoguiding tables
 
@@ -232,6 +233,9 @@ The ```calibrate_pulse_guide.py``` script automatically determines the scale and
    1. The resulting scales and directions from ```calibrate_pulse_guide.py``` should be added the instrument configuration file under the parameters ```PIX2TIME``` and ```DIRECTIONS```. Example values can be seen in the config file above.
 
 If a camera is removed, rotated or the telescope is modified in any way requiring a new pointing model, then the ```pulseGuide``` command should be recalibrated using the steps above.
+
+
+**ADD OPTION TO SPECIFY FILTER ID WHEN CALIBRATING**
 
 ## Calibrating autoguiding control loop
 

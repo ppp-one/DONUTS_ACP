@@ -36,6 +36,8 @@ from astropy.coordinates import (
     )
 from PID import PID
 from donuts import Donuts
+from donuts.image import Image
+from scipy.ndimage import median_filter
 
 # pylint: disable = invalid-name
 # pylint: disable = redefined-outer-name
@@ -46,6 +48,13 @@ from donuts import Donuts
 
 # autoguider status flags
 ag_new_day, ag_new_start, ag_new_field, ag_new_filter, ag_no_change = range(5)
+
+class CustomImageClass(Image):
+    def preconstruct_hook(self):
+        clean = median_filter(self.raw_image, size=4, mode='mirror')
+        band_corr = np.median(clean, axis=1).reshape(-1, 1)
+        band_clean = clean - band_corr
+        self.raw_image = band_clean
 
 # get command line arguments
 def argParse():
@@ -69,7 +78,7 @@ def argParse():
                    help='select an instrument',
                    choices=['io', 'callisto', 'europa',
                             'ganymede', 'saintex', 'nites',
-                            'artemis', 'rcos20'])
+                            'artemis', 'rcos20', 'spirit'])
     return p.parse_args()
 
 def getSunAlt(observatory):
@@ -374,8 +383,10 @@ def logShiftsToDb(qry_args):
         (%s, %s, %s, %s, %s, %s, %s,
          %s, %s, %s, %s, %s, %s, %s)
         """
-    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as cur:
-        cur.execute(qry, qry_args)
+    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as conn:
+        with conn.cursor() as cur:
+            cur.execute(qry, qry_args)
+            conn.commit()
 
 def logMessageToDb(telescope, message):
     """
@@ -403,8 +414,10 @@ def logMessageToDb(telescope, message):
         (%s, %s)
         """
     qry_args = (telescope, message)
-    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as cur:
-        cur.execute(qry, qry_args)
+    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as conn:
+        with conn.cursor() as cur:
+            cur.execute(qry, qry_args)
+            conn.commit()
 
 
 # get evening or morning
@@ -661,8 +674,9 @@ def getReferenceImage(field, filt):
         AND valid_until IS NULL
         """
     qry_args = (field, filt, tnow)
-    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as cur:
-        cur.execute(qry, qry_args)
+    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as conn:
+        with conn.cursor() as cur:
+            cur.execute(qry, qry_args)
     result = cur.fetchone()
     if not result:
         ref_image = None
@@ -700,8 +714,10 @@ def setReferenceImage(field, filt, ref_image, telescope):
         (%s, %s, %s, %s, %s)
         """
     qry_args = (field, telescope, ref_image, filt, tnow)
-    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as cur:
-        cur.execute(qry, qry_args)
+    with openDb(DB_HOST, DB_USER, DB_DATABASE, DB_PASS) as conn:
+        with conn.cursor() as cur:
+            cur.execute(qry, qry_args)
+            conn.commit()
     # copy the file to the autoguider_ref location
     #os.system('cp {} {}'.format(ref_image, AUTOGUIDER_REF_DIR))
     copyfile(ref_image, "{}/{}".format(AUTOGUIDER_REF_DIR, ref_image))
@@ -732,6 +748,8 @@ if __name__ == "__main__":
         from speculoos_artemis import *
     elif args.instrument == 'rcos20':
         from rcos20 import *
+    elif args.instrument == 'spirit':
+        from speculoos_spirit import *
     else:
         sys.exit(1)
 
@@ -820,7 +838,7 @@ if __name__ == "__main__":
         logMessageToDb(args.instrument, "Ref_File: {}".format(ref_file))
         ref_track[current_field][current_filter] = ref_file
         # set up the reference image with donuts
-        donuts_ref = Donuts(ref_file)
+        donuts_ref = Donuts(ref_file, normalise=False, subtract_bkg=True, downweight_edges=False, image_class=CustomImageClass)
         # number of images alloed during initial pull in
         # -ve numbers mean ag should have stabilised
         images_to_stabilise = IMAGES_TO_STABILISE
@@ -849,7 +867,7 @@ if __name__ == "__main__":
                 PIDy.setPoint(PID_COEFFS['set_y'])
                 try:
                     ref_file = ref_track[current_field][current_filter]
-                    donuts_ref = Donuts(ref_file)
+                    donuts_ref = Donuts(ref_file, normalise=False, subtract_bkg=True, downweight_edges=False, image_class=CustomImageClass)
                     images_to_stabilise = IMAGES_TO_STABILISE
                 except KeyError:
                     logMessageToDb(args.instrument, 'No reference in ref_track for this field/filter')

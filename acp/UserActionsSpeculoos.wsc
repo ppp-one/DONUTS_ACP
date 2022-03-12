@@ -141,9 +141,9 @@ Edit History:
 function startDonuts(){
     var Console = Util.Console;
     Console.PrintLine("Starting donuts...");
-    var pyPath = "\"C:\\ProgramData\\Miniconda3\\envs\\snakes\\python.exe\"";
-    var guideScript = "\"C:\\Users\\speculoos\\Documents\\GitHub\\DONUTS_ACP\\donuts_process.py\" \"start\""
-    // this is a dummy string for the log, it's not actually run
+    var pyPath = "\"C:\\Users\\SPIRIT\\.conda\\envs\\snakes\\python.exe\"";
+    var guideScript = "\"C:\\Users\\SPIRIT\\Documents\\GitHub\\DONUTS_ACP\\donuts_process.py\" \"start\""
+    // t his is a dummy string for the log, it's not actually run
     var fullString = pyPath + " " +  guideScript;
     Console.PrintLine(fullString);
     // make the string to execute
@@ -197,8 +197,8 @@ function startDonuts(){
 function stopDonuts(){
     var Console = Util.Console;
     Console.PrintLine("Stopping donuts...");
-    var pyPath = "\"C:\\ProgramData\\Miniconda3\\envs\\snakes\\python.exe\"";
-    var guideScript = "\"C:\\Users\\speculoos\\Documents\\GitHub\\DONUTS_ACP\\donuts_process.py\" \"stop\""
+    var pyPath = "\"C:\\Users\\SPIRIT\\.conda\\envs\\snakes\\python.exe\"";
+    var guideScript = "\"C:\\Users\\SPIRIT\\Documents\\GitHub\\DONUTS_ACP\\donuts_process.py\" \"stop\""
     // this is a dummy string for the log, it's not actually run
     var fullString = pyPath + " " +  guideScript;
     Console.PrintLine(fullString);
